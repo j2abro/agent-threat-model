@@ -248,7 +248,7 @@ footer{max-width:1440px;margin:0 auto;padding:0 16px 28px;color:var(--mute);font
     <div class="panel-body" id="panel-body"></div>
   </aside>
 </main>
-<footer>Early version, still being tested. For training purposes only, do your own analysis. Runs in your browser; nothing you enter is sent anywhere unless you share a link. Tags refer to the OWASP Top 10 for LLM Applications (2026).</footer>
+<footer>Early version, still being tested. For training purposes only, do your own analysis. Runs in your browser; nothing you enter is sent anywhere unless you share a link. Tags refer to the OWASP Top 10 for LLM Applications (2026). Not affiliated with or endorsed by NVIDIA.</footer>
 <div id="toast" role="status"></div>
 
 <script>
@@ -726,7 +726,7 @@ function update(){
     const sel = keep.v!==null ? `[data-k="${keep.k}"][value="${keep.v}"]` : `[data-k="${keep.k}"]`;
     const el = document.querySelector(sel); if (el && !el.disabled) el.focus();
   }
-  try { history.replaceState(null,"","#s="+btoa(encodeURIComponent(JSON.stringify(S)))+(OS?"&os="+OSM:"")); } catch(e){}
+  try { const def = !OS && JSON.stringify(S)===JSON.stringify(PRESETS.wild.s); history.replaceState(null,"", def ? location.pathname + location.search : "#s="+btoa(encodeURIComponent(JSON.stringify(S)))+(OS?"&os="+OSM:"")); } catch(e){}
 }
 
 /* ---------- simulation ---------- */
