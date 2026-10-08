@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interactive AI Agent Threat Model</title>
+<style>
+:root{
+  --bg:#F5F6F8;--card:#fff;--ink:#1B2330;--mute:#5E6B7C;--line:#D5DBE3;--accent:#2F5BEA;
+  --ok:#1F9D8B;--lo:#3B82C4;--warn:#D9822B;--bad:#D6453D;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0F141B;--card:#171E27;--ink:#E7ECF2;--mute:#9AA7B8;--line:#2B3644;--accent:#6D8DFF;
+    --ok:#3CC4AF;--lo:#6AAEE8;--warn:#EBA04F;--bad:#F06A62;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;padding:20px 16px 8px;max-width:1440px;margin:0 auto}
+h1{font-size:22px;margin:0 0 2px;letter-spacing:-.01em}
+.beta{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);border:1.5px solid var(--warn)}
+header p{margin:0;color:var(--mute);font-size:14px;max-width:640px}
+header>div:first-child{flex:1 1 420px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;border-radius:8px;font-size:13.5px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:focus-visible,.f:focus-visible,.segs input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:16px;padding:8px 16px 32px;max-width:1440px;margin:0 auto;align-items:start}
+@media (max-width:980px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);padding:5px 10px;border-radius:999px;font-size:12.5px}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.row{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid var(--line);cursor:pointer}
+.row .txt{display:flex;flex-direction:column;min-width:0}
+.row b{font-weight:600;font-size:14px}
+.row small{color:var(--mute);font-size:12.5px;line-height:1.35}
+.row.off{opacity:.45;cursor:default}
+.row input.t{position:absolute;opacity:0;width:0;height:0}
+.sw{width:34px;height:20px;border-radius:20px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+input.t:checked+.sw{background:var(--accent)}
+input.t:checked+.sw::after{transform:translateX(14px)}
+input.t:focus-visible+.sw{outline:2px solid var(--accent);outline-offset:2px}
+.row.seg{flex-direction:column;align-items:stretch;gap:7px;cursor:default}
+.segs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.segs label{flex:1;position:relative;cursor:pointer}
+.segs input{position:absolute;opacity:0;inset:0}
+.segs span{display:block;padding:6px 6px;text-align:center;font-size:12.5px;border-left:1px solid var(--line)}
+.segs label:first-child span{border-left:0}
+.segs input:checked+span{background:var(--accent);color:#fff}
+.dia-wrap{overflow-x:auto;padding:8px}
+.dia-wrap svg{display:block;width:100%;min-width:720px;height:auto}
+.summary{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;color:#fff;white-space:nowrap}
+.pill.p3{background:var(--bad)}.pill.p2{background:var(--warn)}.pill.p1{background:var(--lo)}
+.ok-chip{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--mute)}
+.ok-chip::before{content:"\2713\00a0";color:var(--ok);font-weight:700}
+.sumlabel{font-size:12.5px;color:var(--mute);margin-right:2px}
+#find h2{font-size:16px;margin:0 0 4px}
+#find .hint{color:var(--mute);font-size:13px;margin:0 0 10px}
+#find ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.f{display:grid;gap:4px;width:100%;text-align:left;background:transparent;color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;padding:10px 12px}
+.f[aria-pressed=true]{border-color:var(--c);background:color-mix(in srgb,var(--c) 7%,var(--card))}
+.f.s3{--c:var(--bad)}.f.s2{--c:var(--warn)}.f.s1{--c:var(--lo)}
+.f .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.f .ft{font-weight:650}
+.f .fb{font-size:14px}
+.f .fx{font-size:13.5px;color:var(--mute)}
+.f .fx b{color:var(--ink)}
+.f .tags{display:flex;flex-wrap:wrap;gap:6px}
+.f .tags i{font-style:normal;font-size:11.5px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--mute)}
+footer{max-width:1440px;margin:0 auto;padding:0 16px 28px;color:var(--mute);font-size:12.5px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+
+.panel{padding:0;position:sticky;top:12px;max-height:calc(100vh - 24px);display:flex;flex-direction:column;overflow:hidden}
+@media (max-width:980px){.panel{position:static;max-height:none}}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:12px 8px;color:var(--mute);font-weight:600;font-size:14px}
+.tabs button:hover{background:color-mix(in srgb,var(--line) 35%,transparent)}
+.tabs button[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs .cnt{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;font-size:11px;color:#fff;background:var(--bad)}
+.tabs .cnt.c0{display:none}
+.panel-body{padding:14px 16px 24px;overflow-y:auto;flex:1}
+.ph{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin:0 0 6px}
+.ph:not(:first-child){margin-top:18px}
+.hint{color:var(--mute);font-size:13px;margin:0 0 10px}
+.zones{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.zchip{display:flex;align-items:center;gap:8px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px;color:var(--ink);line-height:1.25}
+.zchip:hover{background:color-mix(in srgb,var(--line) 30%,transparent)}
+.zchip.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+.zchip .zn{font-family:ui-monospace,Menlo,monospace;color:var(--mute);font-size:11px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.ztitle{display:flex;align-items:center;gap:10px;margin:20px 0 4px;font-size:18px;font-weight:600}
+.ztitle span{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:0 6px}
+.zbody{border:1px solid var(--line);border-radius:10px;padding:2px 12px 4px;margin-top:8px}
+.zbody .row:first-child{border-top:0}
+.next{margin-top:14px;width:100%}
+.steps{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.step{display:flex;gap:10px;padding:8px;border-radius:8px;transition:opacity .3s}
+.step.dim{opacity:.28}
+.sicon{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:2px solid var(--c);color:var(--c)}
+.step.pass{--c:var(--bad)}.step.partial{--c:var(--warn)}.step.block{--c:var(--ok)}
+.step strong{font-size:13.5px;font-weight:600}
+.sword{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--c);margin-left:6px;text-transform:uppercase}
+.step p{margin:2px 0 0;font-size:12.5px;color:var(--mute)}
+.outcome{padding:10px 12px;border-radius:8px;font-weight:600;font-size:13.5px;border:1px solid var(--c);color:var(--ink);background:color-mix(in srgb,var(--c) 10%,var(--card))}
+.outcome.good{--c:var(--ok)}.outcome.warn{--c:var(--warn)}.outcome.bad{--c:var(--bad)}
+.counts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+#find-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.diagram .node{cursor:pointer}
+.diagram .zone[data-zone]{cursor:pointer}
+.diagram .selring{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-dasharray:5 4}
+.diagram .node:focus{outline:none}
+.diagram .node:focus-visible .selring{stroke-width:3.5}
+.preset-list{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pr{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-top:1px solid var(--line);cursor:pointer;position:relative}
+.pr:first-child{border-top:0}
+.pr:hover{background:color-mix(in srgb,var(--line) 30%,transparent)}
+.pr input{position:absolute;opacity:0;width:0;height:0}
+.rb{width:16px;height:16px;border-radius:50%;border:2px solid var(--mute);flex:none;margin-top:2px;position:relative}
+.pr input:checked+.rb{border-color:var(--accent)}
+.pr input:checked+.rb::after{content:"";position:absolute;inset:2px;border-radius:50%;background:var(--accent)}
+.pr input:focus-visible+.rb{outline:2px solid var(--accent);outline-offset:2px}
+.pr:has(input:checked){background:color-mix(in srgb,var(--accent) 8%,var(--card))}
+.pt{display:flex;flex-direction:column}
+.pt b{font-weight:600;font-size:14px}
+.pt small{color:var(--mute);font-size:12.5px;line-height:1.35}
+.osctl{display:flex;align-items:center;gap:8px;font-size:13.5px;margin-right:6px;font-weight:600}
+.osctl .segs{min-width:290px;background:var(--card)}
+.osctl .segs span{white-space:nowrap}
+.osbadge{font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 4px;margin-left:6px;vertical-align:1px}
+.rest{display:grid;gap:6px;margin:6px 0 8px}
+.rest .rh,.rest .rw{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rest .rh{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:700}
+.rest .c{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px;line-height:1.3;display:flex;gap:7px;align-items:flex-start}
+.rest .c i{font-style:normal;font-weight:800;flex:none}
+.rest .c.ok i{color:var(--ok)}.rest .c.off{color:var(--mute)}.rest .c.off i{color:var(--mute)}
+.rest .c.r3{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--card))}.rest .c.r3 i{color:var(--bad)}
+.rest .c.r2{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--card))}.rest .c.r2 i{color:var(--warn)}
+.rest .c.r1{border-color:var(--lo)}.rest .c.r1 i{color:var(--lo)}
+.rest .c.none{color:var(--mute)}.rest .c.none i{color:var(--ok)}
+.osnote{margin-top:12px;padding:10px 12px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card));border-radius:0 8px 8px 0;font-size:13px;display:flex;flex-direction:column;gap:2px}
+.osnote b{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.osnote-bar{margin:0 0 12px;color:var(--mute);font-size:12.5px;flex-basis:100%}
+.simcap{margin-top:12px;padding:14px 18px;border-radius:12px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 12%,var(--card));font-size:19px;font-weight:700;display:flex;gap:6px 14px;align-items:baseline;flex-wrap:wrap}
+.simcap .n{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--c);letter-spacing:.06em}
+.simcap .w{color:var(--c);font-size:14px;letter-spacing:.06em}
+.simcap small{font-weight:500;font-size:14px;color:var(--mute);flex-basis:100%}
+.simcap.pass{--c:var(--bad)}.simcap.partial{--c:var(--warn)}.simcap.block{--c:var(--ok)}
+.simcap[hidden]{display:none}
+</style>
+<style id="diagram-css">
+.diagram text{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--ink)}
+.diagram .t{font-size:16px;font-weight:650}
+.diagram .t.big{font-size:19px}
+.diagram .sub{font-size:12px;fill:var(--mute)}
+.diagram .st{font-size:12px;font-weight:600}
+.diagram .lbl{font-size:12px;fill:var(--mute);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+.diagram .zt{font-size:11px;font-weight:700;letter-spacing:.08em;fill:var(--c)}
+.diagram .s0,.diagram .e0{--c:var(--ok)}
+.diagram .s1,.diagram .e1{--c:var(--lo)}
+.diagram .s2,.diagram .e2{--c:var(--warn)}
+.diagram .s3,.diagram .e3{--c:var(--bad)}
+.diagram .body{fill:var(--card)}
+.diagram .tint{fill:var(--c);opacity:.07}
+.diagram .border{fill:none;stroke:var(--c);stroke-width:1.8}
+.diagram .halo{fill:none;stroke:var(--c);stroke-width:9;opacity:0}
+.diagram .node.s2 .halo{opacity:.16}
+.diagram .node.s3 .halo{opacity:.28}
+.diagram .zbox{fill:var(--c);fill-opacity:.05;stroke:var(--c);stroke-width:2}
+.diagram .zbox.dash{stroke-dasharray:8 6}
+.diagram .line{fill:none;stroke:var(--c);stroke-width:2.4}
+.diagram .edge.blocked .line{stroke:var(--mute);opacity:.6;stroke-dasharray:4 5}
+.diagram .int{fill:none;stroke:var(--mute);opacity:.5;stroke-width:1.6}
+.diagram .resid{font-size:11px;font-weight:800;paint-order:stroke;stroke:var(--card);stroke-width:3px}
+.diagram .otag{font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;letter-spacing:.04em;paint-order:stroke;stroke:var(--card);stroke-width:3px}
+.diagram.simming .node:not(.simhit):not(.simlimited):not(.simsafe),.diagram.simming .edge:not(.simhit):not(.simlimited):not(.simblock),.diagram.simming .int,.diagram.simming .zone{opacity:.3;transition:opacity .4s}
+.diagram .node.simhit .tint{opacity:.42;fill:var(--bad)}
+.diagram .node.simhit .border{stroke:var(--bad);stroke-width:4.5}
+.diagram .node.simhit .halo{stroke:var(--bad);stroke-width:16;opacity:.45;animation:glow 1s ease-in-out infinite alternate}
+.diagram .node.simlimited .tint{opacity:.34;fill:var(--warn)}
+.diagram .node.simlimited .border{stroke:var(--warn);stroke-width:4.5}
+.diagram .node.simsafe .tint{opacity:.3;fill:var(--ok)}
+.diagram .node.simsafe .border{stroke:var(--ok);stroke-width:4.5}
+.diagram .edge.simhit .line{stroke:var(--bad);stroke-width:6;stroke-dasharray:none;opacity:1;filter:drop-shadow(0 0 5px var(--bad))}
+.diagram .edge.simlimited .line{stroke:var(--warn);stroke-width:6;stroke-dasharray:none;opacity:1;filter:drop-shadow(0 0 5px var(--warn))}
+.diagram .edge.simblock .line{stroke:var(--ok);stroke-width:5;stroke-dasharray:8 6;opacity:1}
+.diagram .int.simhit,.diagram .int.simlimited{opacity:1;stroke-width:5;stroke:var(--bad)}
+.diagram .int.simlimited{stroke:var(--warn)}
+.diagram .int.simblock{opacity:1;stroke-width:4;stroke:var(--ok)}
+.diagram .gate.simblock{animation:pop .8s ease-out;opacity:1}
+.diagram.simming .gate{opacity:.5}
+.diagram.simming .gate.simblock{opacity:1}
+.diagram .packet .pglow{animation:ping .9s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.diagram .simbadge rect{fill:var(--bad);stroke:var(--card);stroke-width:2.5}
+.diagram .simbadge.limited rect{fill:var(--warn)}
+.diagram .simbadge.block rect{fill:var(--ok)}
+.diagram .simbadge text{fill:#fff;font-size:11px;font-weight:800;letter-spacing:.05em;paint-order:normal;stroke:none}
+@keyframes glow{from{opacity:.25}to{opacity:.6}}
+@keyframes ping{from{transform:scale(.6);opacity:.5}to{transform:scale(1.5);opacity:0}}
+.diagram .pl rect{fill:var(--c);opacity:.18}
+.diagram .pl text{fill:var(--c);font-size:10px;font-weight:800;letter-spacing:.04em}
+.diagram .pl.off text{fill:var(--mute);font-size:12px;font-weight:400}
+.diagram .m0{fill:var(--ok)}.diagram .m1{fill:var(--lo)}.diagram .m2{fill:var(--warn)}.diagram .m3{fill:var(--bad)}.diagram .mb{fill:var(--mute)}
+.diagram.focus .edge:not(.on),.diagram.focus .node:not(.on),.diagram.focus .zone:not(.on),.diagram.focus .gate{opacity:.22}
+.diagram .edge.on .line{stroke-width:3.2;stroke-dasharray:7 6;animation:dash .9s linear infinite}
+.diagram .node.simhit .halo{opacity:.5;stroke:var(--bad)}
+.diagram .node.simhit .border{stroke:var(--bad)}
+.diagram .edge.simhit .line{stroke:var(--bad);stroke-dasharray:7 6;animation:dash .8s linear infinite;opacity:1}
+.diagram .edge.simblock .line{stroke:var(--ok);opacity:1;stroke-dasharray:none}
+.diagram .gate.simblock{animation:pop .7s ease-out}
+@keyframes dash{to{stroke-dashoffset:-13}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.diagram *{animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Interactive AI Agent Threat Model <span class="beta">Beta</span></h1>
+    <p>A general threat model for AI agents. Set up your agent in six steps to see what a compromised agent could reach. Use the OpenShell switch to see how NVIDIA OpenShell changes the picture.</p>
+  </div>
+  <div class="actions">
+    <div class="osctl"><span>OpenShell</span><div class="segs" role="radiogroup" aria-label="OpenShell view"><label><input type="radio" name="osmode" value="off" checked><span>Off</span></label><label><input type="radio" name="osmode" value="labels"><span>Labels</span></label><label><input type="radio" name="osmode" value="controls"><span>Controls on</span></label></div></div>
+    <button class="btn" id="svgBtn" type="button">Export SVG</button>
+    <button class="btn" id="pngBtn" type="button">Export PNG</button>
+    <button class="btn" id="linkBtn" type="button">Copy link</button>
+  </div>
+</header>
+<main>
+  <section class="stage">
+    <div class="card dia-wrap" id="dia"></div>
+    <div class="simcap" id="simcap" hidden></div>
+    <div class="summary" id="sum"></div>
+    <p class="osnote-bar" id="osnote" hidden>OpenShell reference is a conceptual mapping of NVIDIA's published architecture terms onto this diagram. It is not an OpenShell deployment. Exports show the plain view.</p>
+  </section>
+  <aside class="panel card" aria-label="Setup">
+    <nav class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="configure">Configure</button>
+      <button type="button" role="tab" data-tab="attack">Attack paths</button>
+      <button type="button" role="tab" data-tab="findings">Findings<span class="cnt" id="fcnt"></span></button>
+    </nav>
+    <div class="panel-body" id="panel-body"></div>
+  </aside>
+</main>
+<footer>Early version, still being tested. For training purposes only, do your own analysis. Runs in your browser; nothing you enter is sent anywhere unless you share a link. Tags refer to the OWASP Top 10 for LLM Applications (2026).</footer>
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+/* ---------- state ---------- */
+const PRESETS = {
+  wild:   {name:"YOLO, wild west", desc:"Everything on, no controls.", s:{toolWrite:true,hosting:"vendor",vendorReview:false,noTraining:false,retention:false,sandbox:false,fsScoped:false,egress:"open",approval:false,killSwitch:false,dataAccess:"broad",creds:"broad",shell:true,untrusted:true,thirdParty:true,logging:false}},
+  coding: {name:"Coding agent on a laptop", desc:"Vendor API, runs as you, human approval on.", s:{toolWrite:true,hosting:"vendor",vendorReview:false,noTraining:true,retention:false,sandbox:false,fsScoped:false,egress:"open",approval:true,killSwitch:true,dataAccess:"broad",creds:"broad",shell:true,untrusted:true,thirdParty:true,logging:false}},
+  ops:    {name:"Autonomous ops agent", desc:"Sandboxed with broad credentials, no kill switch.", s:{toolWrite:true,hosting:"cloud",vendorReview:true,noTraining:true,retention:true,sandbox:true,fsScoped:false,egress:"allow",approval:false,killSwitch:false,dataAccess:"scoped",creds:"broad",shell:true,untrusted:true,thirdParty:true,logging:true}},
+  openshell: {name:"OpenShell, full controls", desc:"All OpenShell controls on. Credentials, approvals, tools and model terms are not covered.", s:{toolWrite:true,hosting:"vendor",vendorReview:false,noTraining:false,retention:false,sandbox:true,fsScoped:true,egress:"allow",approval:false,killSwitch:true,dataAccess:"broad",creds:"broad",shell:true,untrusted:true,thirdParty:true,logging:true}},
+  locked: {name:"Locked down", desc:"OpenShell controls plus scoped credentials, approvals, read-only tools, trusted input only and a self-hosted model.", s:{toolWrite:false,hosting:"self",vendorReview:true,noTraining:true,retention:true,sandbox:true,fsScoped:true,egress:"none",approval:true,killSwitch:true,dataAccess:"scoped",creds:"scoped",shell:true,untrusted:false,thirdParty:false,logging:true}}
+};
+const ZONES = [
+  {id:"contain",n:1,title:"Containment & runtime"},
+  {id:"model",n:2,title:"Model & inference"},
+  {id:"data",n:3,title:"Data access"},
+  {id:"tools",n:4,title:"Tools & external systems"},
+  {id:"controls",n:5,title:"Approval & controls"},
+  {id:"inputs",n:6,title:"Adversarial inputs"}
+];
+const NODE_ZONE = {gateway:"controls",inputs:"inputs",llm:"contain",runtime:"contain",tools:"tools",model:"model",egress:"tools",cdata:"data",cloud:"tools",secrets:"tools",biz:"tools"};
+const OS_NOTES = {
+  contain:"OpenShell runs the agent in a sandbox inside an isolation boundary that denies all egress except the link to the supervisor. Process controls use seccomp. The boundary limits the runtime box: files, shell and direct calls.",
+  model:"OpenShell can limit which model endpoints the agent reaches. Hosting, vendor review and contract terms are your own controls.",
+  data:"The filesystem policy uses Landlock to limit which paths the agent can read or write.",
+  tools:"Providers map service names to stored credentials. The supervisor supplies them only where policy permits, and it mediates TCP and DNS requests.",
+  controls:"The gateway is the control plane for sandbox lifecycle, policy delivery and access control. The Policy Prover checks proposed network rules and blocks auto-approval when it finds risky access.",
+  inputs:"Not an OpenShell control. The boundary limits what a hijacked agent can reach, but prompt injection still needs its own defenses."
+};
+const ITEMS = [
+  {zone:"contain",k:"sandbox",type:"tog",label:"Sandbox around the agent",help:"Container, VM or OS sandbox that limits what it can touch."},
+  {zone:"contain",k:"shell",type:"tog",label:"Shell or code execution",help:"Agent code can run commands or scripts directly, outside the model-requested tool calls."},
+  {zone:"model",k:"hosting",type:"seg",label:"Where does the model run?",help:"Determines who can see your prompts and data.",opts:[["self","Self-hosted"],["cloud","Your cloud"],["vendor","Vendor API"]]},
+  {zone:"model",k:"vendorReview",type:"tog",label:"Vendor security review done",help:"Certifications, breach history, subprocessors, data location, terms.",naIf:s=>s.hosting==="self"},
+  {zone:"model",k:"noTraining",type:"tog",label:"No-training clause",help:"Provider may not train on your prompts or data.",naIf:s=>s.hosting==="self"},
+  {zone:"model",k:"retention",type:"tog",label:"Limited data retention",help:"Zero or short retention agreed in writing.",naIf:s=>s.hosting==="self"},
+  {zone:"data",k:"dataAccess",type:"seg",label:"Sensitive data access",help:"PII, secrets, source code, customer records.",opts:[["none","None"],["scoped","Scoped"],["broad","Broad"]]},
+  {zone:"data",k:"fsScoped",type:"tog",label:"Filesystem scoped to a workspace",help:"Only the task folder is visible.",naIf:s=>!s.sandbox},
+  {zone:"tools",k:"toolWrite",type:"tog",label:"Tools can write or act",help:"Send, post, modify or delete through MCP, OAuth or APIs. Off means read-only."},
+  {zone:"tools",k:"creds",type:"seg",label:"Credentials the agent holds",help:"Scoped means least privilege and short-lived.",opts:[["none","None"],["scoped","Scoped"],["broad","Broad"]]},
+  {zone:"tools",k:"egress",type:"seg",label:"Network egress",help:"What the agent can send out.",opts:[["open","Open"],["allow","Allowlist"],["none","None"]]},
+  {zone:"tools",k:"thirdParty",type:"tog",label:"Third-party MCP servers or plugins",help:"Tool descriptions and output come from outside."},
+  {zone:"controls",k:"approval",type:"tog",label:"Human approval for risky actions",help:"Writes, deletes, payments, external sends."},
+  {zone:"controls",k:"killSwitch",type:"tog",label:"Kill switch and fast revoke",help:"Stop the agent and revoke its credentials in one step."},
+  {zone:"controls",k:"logging",type:"tog",label:"Actions logged and reviewable",help:"Prompts, tool calls and results are recorded."},
+  {zone:"inputs",k:"untrusted",type:"tog",label:"Reads content you do not control",help:"Web, email, uploads, tickets, other people's docs."}
+];
+let S = Object.assign({}, PRESETS.wild.s);
+let focusId = null, simTimers = [], simOn = false, zoneSel = "contain", tab = "configure", CUR = null, OS = false, OSM = "off", S_BEFORE = null, APPLIED = {};
+
+/* ---------- OpenShell controls ---------- */
+const OVERRIDES = {sandbox:true, fsScoped:true, egress:"allow", killSwitch:true, logging:true};
+function applyControls(){
+  S_BEFORE = Object.assign({}, S); APPLIED = {};
+  for (const k in OVERRIDES) {
+    if (k==="egress" && S.egress==="none") continue;
+    if (S[k]!==OVERRIDES[k]) { APPLIED[k] = OVERRIDES[k]; S[k] = OVERRIDES[k]; }
+  }
+}
+function setOSM(m){
+  const prev = OSM;
+  if (prev==="controls" && m!=="controls" && S_BEFORE) {
+    if (Object.keys(APPLIED).length) { for (const k in APPLIED) if (S[k]===APPLIED[k]) S[k] = S_BEFORE[k]; }
+    else if (JSON.stringify(S)===JSON.stringify(PRESETS.openshell.s)) S = Object.assign({}, S_BEFORE);
+    S_BEFORE = null; APPLIED = {};
+  }
+  if (m==="controls" && prev!=="controls") { S_BEFORE = Object.assign({}, S); APPLIED = {}; S = Object.assign({}, PRESETS.openshell.s); }
+  OSM = m; OS = m!=="off";
+}
+function withControls(s){ const o = Object.assign({}, s); for (const k in OVERRIDES) { if (k==="egress" && o.egress==="none") continue; o[k] = OVERRIDES[k]; } return o; }
+function curPreset(){
+  const same = (a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  const exact = Object.keys(PRESETS).find(k=>same(PRESETS[k].s,S));
+  if (exact) return exact;
+  if (OSM==="controls") { const k = Object.keys(PRESETS).find(k=>same(withControls(PRESETS[k].s),S)); if (k) return k; }
+  return "custom";
+}
+function osProvided(k){ return OSM==="controls" && k in OVERRIDES && S[k]===OVERRIDES[k]; }
+const HANDLED = ["Filesystem scope (Landlock)","Egress allowlist via the supervisor","Credentials injected, never visible to the agent","Freeze on disconnect, cut off on delete","Logging to the gateway"];
+function residual(A){
+  const s = S, lv = A.lv;
+  return [
+    {h:HANDLED[0], on:A.fsx, r:"Prompt injection through content the agent is allowed to read", active:A.ut, sev:2, tag:"injection", edge:"in"},
+    {h:HANDLED[1], on:s.sandbox && s.egress!=="open", r:"Leaking permitted data through an allowed destination", active:s.dataAccess!=="none" && s.egress!=="none", sev:s.egress==="open"?3:2, tag:"allowlist leak", edge:"egress"},
+    {h:HANDLED[2], on:OSM==="controls", r:"What those credentials are allowed to do", active:s.creds!=="none", sev:s.creds==="broad"?3:1, tag:"what it may do", edge:"creds"},
+    {h:HANDLED[3], on:s.killSwitch, r:"Trusting third-party MCP servers", active:s.thirdParty, sev:2, tag:"MCP trust", edge:"mcp"},
+    {h:HANDLED[4], on:s.logging, r:"Model hosting, training and retention terms", active:s.hosting!=="self" && A.hasData && lv.model>=1, sev:Math.max(1,lv.model), tag:"your terms", edge:"model"}
+  ];
+}
+
+/* ---------- analysis ---------- */
+function analyze(s){
+  const sbx = s.sandbox, fsx = sbx && s.fsScoped, ut = s.untrusted || s.thirdParty;
+  const hasData = s.dataAccess !== "none";
+  let data = s.dataAccess==="none" ? 0 : s.dataAccess==="scoped" ? 1 : 3;
+  if (data===3 && fsx && s.creds!=="broad") data = 1;
+  let creds = s.creds==="none" ? 0 : s.creds==="scoped" ? 1 : 3;
+  if (creds===3 && s.approval) creds = 2;
+  const egress = s.egress==="none" ? 0 : s.egress==="allow" ? 1 : 3;
+  let model = 0;
+  if (s.hosting==="vendor") model = hasData ? (!s.noTraining ? 3 : !s.retention ? 2 : 1) : (!s.noTraining ? 1 : 0);
+  else if (s.hosting==="cloud") model = hasData ? (!s.noTraining ? 2 : 1) : 0;
+  if (s.hosting!=="self" && !s.vendorReview && (hasData || model>0)) model = Math.min(3, model+1);
+  const act = creds===0 ? 0 : (s.toolWrite ? creds : Math.min(creds,1));
+  let tools = 1; if (s.thirdParty) tools = 2; if (s.toolWrite) tools = Math.max(tools,2);
+  if (s.toolWrite && ut && !s.approval && creds>=1) tools = 3;
+  const files = !sbx ? 3 : fsx ? 0 : 2, shell = !s.shell ? 0 : sbx ? 1 : 3;
+  const lv = {inputs: ut?2:0, llm: ut?2:1, files, shell, runtime: Math.max(files,shell), mcp: tools, act, data, creds, egress, model};
+  return {sbx, fsx, ut, hasData, lv};
+}
+
+const TAGS = {LLM01:"Prompt injection",LLM02:"Sensitive info disclosure",LLM04:"Supply chain",LLM03:"Excessive agency"};
+const SEVWORD = ["Contained","Low","Elevated","Critical"];
+
+function findings(s, A){
+  const out = [], lv = A.lv;
+  const add = (id,sev,title,body,fix,tags,path,ring) => out.push({id,sev,title,body,fix,tags,path:path||[],ring:!!ring});
+  const trifecta = A.ut && lv.data>=1 && lv.egress>=1;
+  if (trifecta) add("trifecta", lv.egress===3 ? 3 : 2,
+    "Injected text can read your data and send it out",
+    "The agent reads untrusted content, can access sensitive data and can send data out. One injected instruction can use all three.",
+    "Remove one of the three: block egress or remove access to sensitive data. An allowlist narrows where data can go but does not close the path.",
+    ["LLM01","LLM02"], ["in","toRuntime","rdata","toTools","egress"]);
+  if (!A.sbx) add("nosbx", s.shell ? 3 : 2, "No sandbox around the agent",
+    (A.ut ? "A prompt-injected agent" : "A misbehaving agent") + " runs with your user's full access" + (s.shell ? ", including code execution on the host." : "."),
+    "Run it in a container, VM or OS sandbox with a scoped workspace.",
+    ["LLM03"], ["toRuntime"], true);
+  if (A.sbx && !s.fsScoped && s.dataAccess==="broad") add("mounts", 2, "Sandbox mounts broad data",
+    "The sandbox exists, but it has access to most of your sensitive data.",
+    "Mount only the task workspace, read-only where you can.", ["LLM03"], ["toRuntime","rdata"]);
+  if (A.ut && s.toolWrite && lv.creds>=1) add("write", s.approval ? 2 : 3, "Write-capable tools can act on injected instructions",
+    "Tools that send, post, modify or delete run with the agent's permissions. Injected text can steer them." + (s.approval ? " Approval helps only if someone actually reviews each request." : ""),
+    "Make tools read-only where possible and require approval for writes.", ["LLM03","LLM01"], ["in","toTools","tdata"]);
+  if (s.creds==="broad") {
+    if (A.ut && !(s.toolWrite)) add("creds", 2, "Broad credentials behind read-only tools",
+      "Read access with broad scope still exposes a lot, and direct API calls from code may bypass the read-only limit.",
+      "Issue short-lived, least-privilege tokens per task.", ["LLM03"], ["in","toTools","tdata"]);
+    else if (!A.ut && !s.approval) add("creds2", 2, "Broad credentials with no approval step",
+      "Errors and malicious actions both run with full privileges.",
+      "Scope the tokens and require approval for destructive actions.", ["LLM03"], ["toTools","tdata"]);
+  }
+  if (s.hosting!=="self" && !s.vendorReview) add("vendor", A.hasData ? (s.hosting==="vendor" ? 3 : 2) : 1, "Model provider has not been vetted",
+    "Contract terms depend on the provider following them. An unreviewed vendor may have weak security, unknown subprocessors or a poor breach history.",
+    "Run a vendor review: SOC 2 or ISO 27001, pen-test summary, breach history, subprocessors, data location, incident notification terms.",
+    ["LLM04","LLM02"], ["rdata","toRuntime","model"]);
+  if (s.hosting==="vendor" && A.hasData && !s.noTraining) add("train", 3, "Sensitive data goes to a provider with no training protection",
+    "Prompts and retrieved data may be used to improve the provider's models.",
+    "Get a no-training clause in the contract, or move to a tenant you control.", ["LLM02"], ["rdata","toRuntime","model"]);
+  else if (s.hosting==="vendor" && A.hasData && !s.retention) add("retain", 2, "Provider may retain your sensitive data",
+    "Training is covered, but stored prompts can still be exposed in a breach or by request.",
+    "Ask for zero or short retention in writing.", ["LLM02"], ["rdata","toRuntime","model"]);
+  else if (s.hosting==="cloud" && A.hasData && !s.noTraining) add("train2", 2, "Training terms not covered for your tenant",
+    "A private endpoint does not by itself rule out training or logging.",
+    "Confirm training and retention terms for the tenant.", ["LLM02"], ["rdata","toRuntime","model"]);
+  if (s.thirdParty) add("third", 2, "Third-party tools extend your trust boundary",
+    "The agent may follow instructions in tool descriptions and tool output.",
+    "Pin versions, review tool descriptions and allow only vetted servers.", ["LLM04","LLM01"], ["in","toTools"]);
+  if (A.sbx && s.egress==="open" && !trifecta) add("egressopen", A.hasData ? 2 : 1, "Sandbox does not limit outbound network",
+    "Any data the agent can read can be sent out.",
+    "Use an egress allowlist or a proxy that logs requests.", ["LLM02"], ["toTools","egress"]);
+  if (!s.logging) add("nolog", (lv.creds||lv.data) ? 2 : 1, "No audit trail of agent actions",
+    "Without logs you cannot tell what happened after an incident.",
+    "Log prompts, tool calls and results somewhere the agent cannot write.", ["Detection"], []);
+  if (!s.killSwitch) add("nokill", (lv.creds===3||lv.egress===3||lv.creds===2) ? 2 : 1, "No fast way to stop the agent",
+    "There is no single action to stop the agent and revoke its credentials.",
+    "Add a kill switch and a one-step credential revoke.", ["Response"], []);
+  return out.sort((a,b)=>b.sev-a.sev);
+}
+
+/* ---------- diagram ---------- */
+const EDGES = {in:["inputs","llm"],toRuntime:["llm","runtime"],toTools:["llm","tools"],rdata:["runtime","cdata"],tdata:["tools","cloud"],egress:["tools","egress"],model:["llm","model"]};
+const esc = t => String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function nodeShell(id, x, y, w, h, lvl, on, sel, aria, inner){
+  let g = `<g class="node s${lvl}${on?" on":""}" data-node="${id}" data-zone="${NODE_ZONE[id]}" tabindex="0" role="button" aria-label="${esc(aria)}: open setup">`;
+  g += `<rect class="halo" x="${x}" y="${y}" width="${w}" height="${h}" rx="14"/><rect class="body" x="${x}" y="${y}" width="${w}" height="${h}" rx="14"/>`;
+  g += `<rect class="tint" x="${x}" y="${y}" width="${w}" height="${h}" rx="14"/><rect class="border" x="${x}" y="${y}" width="${w}" height="${h}" rx="14"/>`;
+  if (sel) g += `<rect class="selring" x="${x-5}" y="${y-5}" width="${w+10}" height="${h+10}" rx="18"/>`;
+  return g + inner + `</g>`;
+}
+function stdInner(o){
+  const {x,y,w,h,title,sub=[],status,row,compact} = o, cx = x+16;
+  let t = "";
+  if (row) {
+    t += `<text class="t big" x="${cx}" y="${y+30}">${esc(title)}</text>`;
+    sub.forEach((q,i)=>{ t += `<text class="sub" x="${cx}" y="${y+52+16*i}">${esc(q)}</text>`; });
+    const dx = x+w-16-status.length*6.6-12;
+    t += `<circle cx="${dx}" cy="${y+26}" r="4.5" fill="var(--c)"/><text class="st" x="${x+w-16}" y="${y+30}" text-anchor="end">${esc(status)}</text>`;
+    return t;
+  }
+  t += `<text class="t" x="${cx}" y="${y+(compact?26:28)}">${esc(title)}</text>`;
+  sub.forEach((q,i)=>{ t += `<text class="sub" x="${cx}" y="${y+48+16*i}">${esc(q)}</text>`; });
+  t += `<circle cx="${cx+4}" cy="${y+h-(compact?14:16)}" r="4.5" fill="var(--c)"/><text class="st" x="${cx+14}" y="${y+h-(compact?10:12)}">${esc(status)}</text>`;
+  return t;
+}
+function gateSVG(id,x,y,state,tip){
+  if (!state) return "";
+  const col = state==="closed" ? "var(--ok)" : "var(--warn)", bw = state==="closed" ? 12 : 6;
+  return `<g class="gate" data-gate="${id}" style="transform-box:fill-box;transform-origin:center"><circle cx="${x}" cy="${y}" r="10.5" fill="${col}" stroke="var(--card)" stroke-width="2"/><rect x="${x-bw/2}" y="${y-1.7}" width="${bw}" height="3.4" rx="1.5" fill="#fff"/><title>${esc(tip)}</title></g>`;
+}
+const LVLVAR = ["var(--ok)","var(--lo)","var(--warn)","var(--bad)"];
+function pill(cx, cy, label, lvl){
+  if (lvl<0) return `<g class="pl off"><text x="${cx}" y="${cy+4}" text-anchor="middle">—</text></g>`;
+  return `<g class="pl s${lvl}"><rect x="${cx-28}" y="${cy-10}" width="56" height="20" rx="10"/><text x="${cx}" y="${cy+4}" text-anchor="middle">${label}</text></g>`;
+}
+
+function buildSVG(A, foc, osv){
+  const s = S, lv = A.lv, ctl = osv && OSM==="controls";
+  const onE = new Set(foc ? foc.path : []);
+  const onN = new Set(); onE.forEach(e=>EDGES[e].forEach(n=>onN.add(n)));
+  const selOf = id => tab==="configure" && NODE_ZONE[id]===zoneSel;
+  const edge = (id,d,lvl,o={}) => {
+    const on = onE.has(id), L = on ? 3 : lvl, blocked = !on && lvl===0 && o.blockable;
+    const mk = blocked ? "ab" : "a"+L;
+    let t = `<g class="edge e${L}${blocked?" blocked":""}${on?" on":""}" data-edge="${id}"><path class="line" d="${d}" marker-end="url(#${mk})"${o.both?` marker-start="url(#${mk})"`:""}/>`;
+    (o.labels||[]).forEach(l=>{ t += `<text class="lbl" x="${l.x}" y="${l.y}" text-anchor="${l.a||"middle"}">${esc(l.t)}</text>`; });
+    return t + "</g>";
+  };
+  const secLvl = ctl ? Math.min(1, lv.creds) : (lv.creds===3 ? 3 : (s.dataAccess==="broad" && !A.sbx ? 2 : lv.creds ? 1 : 0));
+  const hostWord = "MODEL PROVIDER";
+  let svg = `<svg class="diagram${foc?" focus":""}" xmlns="http://www.w3.org/2000/svg" viewBox="0 24 1000 780" role="img" aria-label="Threat model diagram: untrusted input, agent with LLM, runtime and tools, trusted enterprise data">`;
+  svg += `<defs>` + ["0","1","2","3","b"].map(k=>`<marker id="a${k}" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="15" markerHeight="15" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="m${k}"/></marker>`).join("") + `</defs>`;
+
+  /* trust boundaries */
+  svg += `<g class="s${lv.inputs}"><path d="M30,146 H970" stroke="var(--c)" stroke-width="2.5" stroke-dasharray="9 7"/><text class="zt" x="30" y="139">TRUST BOUNDARY</text></g>`;
+  svg += `<g><path d="M30,636 H970" stroke="var(--mute)" stroke-width="2.5" stroke-dasharray="9 7"/><text class="zt" style="fill:var(--mute)" x="30" y="629">TRUST BOUNDARY</text></g>`;
+
+  /* untrusted band (node) */
+  const chips = [["Email",1],["GitHub issues",1],["Support tickets",1],["Documents",1],["Web pages",1],["Tool results",2]];
+  let inner = `<text class="t big" x="48" y="72" style="fill:var(--c)">UNTRUSTED</text><text class="sub" x="48" y="92">OUTSIDE YOUR CONTROL</text>`;
+  chips.forEach(([t,k],i)=>{
+    const live = k===2 ? true : s.untrusted, cx = 230+i*123;
+    inner += `<g opacity="${live?1:.38}"><rect x="${cx}" y="62" width="113" height="42" rx="9" fill="var(--card)" stroke="var(--c)" stroke-width="1.5"${live?"":` stroke-dasharray="4 3"`}/><text class="st" x="${cx+56.5}" y="87" text-anchor="middle">${t}</text></g>`;
+  });
+  svg += nodeShell("inputs",30,40,940,80,lv.inputs,onN.has("inputs"),selOf("inputs"),"Untrusted input",inner);
+
+  /* agent container (sandbox) */
+  svg += `<g class="zone s${s.sandbox?0:3}${foc&&foc.ring?" on":""}" data-zone="contain"><rect class="zbox${s.sandbox?"":" dash"}" x="30" y="168" width="690" height="410" rx="18"/>` +
+    `<text class="zt" x="48" y="190">${osv ? (s.sandbox?"ISOLATION BOUNDARY":"NO ISOLATION BOUNDARY") : (s.sandbox?"AGENT · SANDBOXED":"AGENT · NO SANDBOX")}</text>` +
+    `<text class="sub" x="704" y="190" text-anchor="end">${s.sandbox?(s.fsScoped?"workspace-scoped":"broad mounts"):"runs as your user"}</text></g>`;
+
+  /* model zone */
+  svg += `<g class="zone s${s.hosting==="self"?0:lv.model}" data-zone="model"><rect class="zbox${s.hosting==="vendor"?" dash":""}" x="745" y="168" width="235" height="232" rx="18"/><text class="zt" x="760" y="190">${hostWord}</text>`;
+  svg += `<text class="zt" style="fill:var(--mute);font-size:10px" x="760" y="320">IF HOSTED${s.hosting==="self"?" · NOT APPLICABLE":""}</text>`;
+  if (s.hosting==="self") svg += `<text class="sub" x="760" y="344">You control training</text><text class="sub" x="760" y="362">and retention</text>`;
+  else {
+    svg += `<circle cx="766" cy="338" r="4.5" fill="${s.noTraining?"var(--ok)":"var(--bad)"}"/><text class="sub" x="776" y="342">${s.noTraining?"No-training clause":"No training protection"}</text>`;
+    svg += `<circle cx="766" cy="359" r="4.5" fill="${s.retention?"var(--ok)":"var(--warn)"}"/><text class="sub" x="776" y="363">${s.retention?"Limited retention":"Retention unlimited"}</text>`;
+    svg += `<circle cx="766" cy="380" r="4.5" fill="${s.vendorReview?"var(--ok)":"var(--bad)"}"/><text class="sub" x="776" y="384">${s.vendorReview?"Vendor reviewed":"Vendor not vetted"}</text>`;
+  }
+  svg += `</g>`;
+
+  /* supervisor bar (OpenShell) */
+  if (osv) {
+    const supN = [s.sandbox, s.egress!=="open", s.creds!=="broad" || ctl].filter(Boolean).length;
+    const sc = supN===3 ? 0 : supN===2 ? 2 : 3, sw = ["absent","absent","partial","enforcing"][supN];
+    svg += `<g class="zone s${sc}" data-zone="contain"><rect class="zbox${supN===3?"":" dash"}" style="fill-opacity:.16" x="55" y="554" width="645" height="20" rx="8"/><text class="zt" x="385" y="568" text-anchor="middle" style="paint-order:stroke;stroke:var(--card);stroke-width:4px">SUPERVISOR: ${sw.toUpperCase()}</text></g>`;
+  }
+
+  /* edges */
+  const actL = lv.act;
+  svg += edge("in","M240,122 V198",lv.inputs,{blockable:true,labels:[{x:252,y:134,a:"start",t:A.ut?"content":"trusted"}]});
+  svg += edge("model","M700,233 H762",lv.model,{both:true,labels:[{x:731,y:218,t:"call"},{x:731,y:252,t:"reply"}]});
+  svg += edge("toRuntime","M180,268 V298",lv.runtime);
+  svg += edge("toTools","M515,268 V298",lv.mcp,{both:true,labels:[{x:527,y:288,a:"start",t:"call / result"}]});
+  svg += edge("rdata","M230,546 V654",lv.data,{blockable:true,labels:[{x:242,y:604,a:"start",t:lv.data===0?"no access":"read: "+(lv.data===3?"broad":"scoped")}]});
+  svg += edge("tdata","M470,546 V654",actL,{blockable:true,labels:[{x:482,y:604,a:"start",t:actL===0?"no creds":"acts: "+(s.creds==="broad"?"broad":"scoped")}]});
+  svg += edge("egress","M700,470 H762",lv.egress,{blockable:true,labels:[{x:731,y:458,t:lv.egress===0?"blocked":s.egress==="allow"?"allowlist":"open"}]});
+
+  /* gates */
+  svg += gateSVG("data",230,578, s.dataAccess==="none" ? "closed" : A.fsx && s.dataAccess==="broad" ? "partial" : null, s.dataAccess==="none"?"No data access":"Sandbox narrows broad data to the workspace");
+  svg += gateSVG("creds",470,578, s.creds==="none" ? "closed" : (s.approval ? "partial" : null), s.creds==="none"?"No credentials":"Human approval gates risky actions");
+  svg += gateSVG("egress",720,470, s.egress==="none" ? "closed" : s.egress==="allow" ? "partial" : null, s.egress==="none"?"No outbound network":"Egress allowlist");
+
+  /* LLM */
+  svg += nodeShell("llm",55,198,645,70,lv.llm,onN.has("llm"),selOf("llm"),"Agent loop", stdInner({x:55,y:198,w:645,h:70,row:true,title:"Agent loop",sub:["harness code that builds the context and runs what the model asks"],status:A.ut?"Mixes untrusted text into context":"Trusted input only"}));
+
+  /* runtime (ambient access) */
+  const rrows = [
+    {l:"Files", st:!A.sbx?"Host filesystem":A.fsx?"Workspace only":"Broad mounts", v:lv.files},
+    {l:"Shell and code execution", st:!s.shell?"Not enabled":A.sbx?"Sandboxed":"On the host", v:lv.shell},
+    {l:"Direct API calls from code", st:s.creds==="none"?"No credentials":(ctl?"Brokered credentials":s.creds==="scoped"?"Scoped credentials":"Broad credentials"), v:s.creds==="none"?0:ctl?Math.min(lv.creds,1):lv.creds}
+  ];
+  let ri = `<text class="zt" style="fill:var(--mute);font-size:9.5px" x="71" y="313">ACCESS · DIRECT FROM CODE</text><text class="t" x="71" y="337">Agent runtime</text><text class="sub" x="71" y="353">what the agent code touches itself</text>`;
+  rrows.forEach((r,i)=>{
+    const y0 = 380+i*54;
+    ri += `<path d="M71,${y0-16} H289" stroke="var(--line)"/><text class="st" x="71" y="${y0+4}">${r.l}</text><g class="s${r.v}"><circle cx="76" cy="${y0+22}" r="4.5" fill="var(--c)"/></g><text class="sub" x="88" y="${y0+26}">${r.st}</text>`;
+  });
+  svg += nodeShell("runtime",55,298,250,248,lv.runtime,onN.has("runtime"),selOf("runtime"),"Agent runtime",ri);
+
+  /* tools panel */
+  const readL = s.dataAccess==="none" ? 1 : (lv.data>=3 ? 3 : 2), writeL = s.toolWrite ? (s.approval ? 2 : 3) : -1;
+  const trows = [["MCP servers"+(s.thirdParty?" (3rd-party)":""),true],["OAuth access",true],["APIs (LLM-directed)",true],["Web fetch and search",false],["RAG and vector store",false]];
+  let ti = `<text class="zt" style="fill:var(--mute);font-size:9.5px" x="346" y="313">ACCESS · REQUESTED BY THE MODEL</text><text class="t" x="346" y="337">Tools</text><text class="sub" x="346" y="353">what the model asks the agent to call</text>`;
+  ti += `<text class="st" x="598" y="330" text-anchor="middle" style="fill:var(--mute);font-size:10.5px;letter-spacing:.06em">READ</text><text class="st" x="662" y="330" text-anchor="middle" style="fill:var(--mute);font-size:10.5px;letter-spacing:.06em">WRITE</text>`;
+  trows.forEach(([lab,w],i)=>{
+    const y0 = 372+i*30;
+    ti += `<path d="M346,${y0-10} H684" stroke="var(--line)"/><text class="st" x="346" y="${y0+9}">${lab}</text>` + pill(598,y0+4,"READ",readL) + pill(662,y0+4,"WRITE",w?writeL:-1);
+  });
+  const chip = (x,y,w,txt,l)=>`<g class="s${l}"><rect x="${x}" y="${y}" width="${w}" height="26" rx="13" fill="var(--c)" opacity=".14"/><circle cx="${x+13}" cy="${y+13}" r="4.5" fill="var(--c)"/></g><text class="st" x="${x+25}" y="${y+17}">${txt}</text>`;
+  ti += chip(342,508,196,"Credentials: "+(s.creds==="none"?"none":s.creds==="scoped"?"scoped":ctl?"broad, brokered":"broad"),lv.creds);
+  ti += chip(546,508,140,"Egress: "+(s.egress==="open"?"open":s.egress==="allow"?"allowlist":"none"),lv.egress);
+  svg += nodeShell("tools",330,298,370,248,lv.mcp,onN.has("tools"),selOf("tools"),"Tools",ti);
+
+  /* model + egress nodes */
+  const modelStatus = {self:"Runs in house",cloud:"Runs in your tenant",vendor:"Prompts leave your control"}[s.hosting];
+  svg += nodeShell("model",762,205,200,96,s.hosting==="self"?0:lv.model,onN.has("model"),selOf("model"),"Model",stdInner({x:762,y:205,w:200,h:96,title:"LLM",sub:{self:["Runs on your","own hardware"],cloud:["Dedicated endpoint","in your tenant"],vendor:["Vendor API,","shared service"]}[s.hosting],status:modelStatus}));
+  svg += nodeShell("egress",762,420,208,96,lv.egress,onN.has("egress"),selOf("egress"),"External egress",stdInner({x:762,y:420,w:208,h:96,title:"External egress",sub:["Internet, email,","outbound APIs"],status:["No outbound","Allowlisted","","Open outbound"][lv.egress]}));
+
+  /* trusted band */
+  svg += `<rect x="30" y="656" width="940" height="100" rx="14" fill="var(--mute)" fill-opacity=".07" stroke="var(--mute)" stroke-width="2"/><text class="t big" x="48" y="702" style="fill:var(--mute)">TRUSTED</text><text class="sub" x="48" y="722">ENTERPRISE DATA</text>`;
+  const tchips = [["cdata","Customer data",lv.data,["No access","Scoped access","","Broad access"][lv.data]],["cloud","Cloud accounts",actL,["No credentials","Limited","","Can act"][actL===2?3:actL]],["secrets","Secrets",secLvl,secLvl===0?"Not exposed":secLvl===1?(ctl?"Injected, not visible":"Limited"):secLvl===2?"Reachable on host":"Exposed"],["biz","Business systems",actL,["No credentials","Limited","","Can act"][actL===2?3:actL]]];
+  tchips.forEach(([id,name,l,st],i)=>{
+    const x = 190+i*194;
+    svg += nodeShell(id,x,676,180,60,l,onN.has(id),selOf(id),name,stdInner({x,y:676,w:180,h:60,title:name,status:st,compact:true}));
+  });
+
+  /* OpenShell extras */
+  if (osv) {
+    const tag = (x,y,t,ok,anchor)=>`<text class="otag" style="fill:${ok?"var(--ok)":"var(--warn)"}" x="${x}" y="${y}" text-anchor="${anchor||"end"}">${t}</text>`;
+    svg += `<path d="M762,570 H700" fill="none" stroke="var(--mute)" stroke-width="1.8" stroke-dasharray="3 4" opacity=".7"/>`;
+    const miss = (!s.killSwitch) + (!s.logging);
+    svg += nodeShell("gateway",762,530,208,92,[0,2,3][miss],onN.has("gateway"),selOf("gateway"),"Gateway",stdInner({x:762,y:530,w:208,h:92,title:"Gateway",sub:["Control plane: lifecycle,","policy delivery, audit"],status:["Full control plane","Partial control plane","No control plane"][miss]}));
+    svg += tag(560,214,s.sandbox?"SANDBOX":"NO SANDBOX",s.sandbox);
+    svg += tag(55,292,(A.fsx&&(s.sandbox||!s.shell))?"LANDLOCK + SECCOMP":"NO LANDLOCK / SECCOMP",A.fsx&&(s.sandbox||!s.shell),"start");
+    svg += tag(330,292,(s.creds!=="broad"||ctl)?"PROVIDERS":"RAW CREDS",s.creds!=="broad"||ctl,"start");
+    svg += tag(970,414,(s.sandbox&&s.egress!=="open")?"NETWORK POLICY":"NO POLICY",s.sandbox&&s.egress!=="open");
+    if (ctl) {
+      const R = residual(A), rl = (x,y,t,sev,anchor)=>`<text class="resid" style="fill:${sev>=3?"var(--bad)":"var(--warn)"}" x="${x}" y="${y}" text-anchor="${anchor||"middle"}">${t}</text>`;
+      if (R[0].active) svg += rl(420,134,"injection",2,"start");
+      if (R[1].active) svg += rl(766,524,"allowlist leak",R[1].sev,"start");
+      if (R[2].active) svg += rl(564,670,"what it may do",R[2].sev,"end");
+      if (R[3].active) svg += rl(700,292,"MCP TRUST",2,"end");
+      if (R[4].active) svg += rl(966,396,"your terms",R[4].sev,"end");
+    }
+  }
+
+  /* legend */
+  const LY = 786;
+  svg += `<g>`;
+  [[0,"Contained"],[1,"Low"],[2,"Elevated"],[3,"Critical"]].forEach(([l,t],i)=>{
+    svg += `<g class="s${l}"><circle cx="${40+i*118}" cy="${LY}" r="5.5" fill="var(--c)"/></g><text class="sub" style="fill:var(--ink)" x="${52+i*118}" y="${LY+4}">${t}</text>`;
+  });
+  svg += `<path d="M520,${LY} H540" stroke="var(--mute)" stroke-width="2.4" stroke-dasharray="4 4" opacity=".7"/><text class="sub" x="548" y="${LY+4}">No path or blocked</text>`;
+  svg += `<circle cx="712" cy="${LY}" r="6" fill="var(--ok)"/><text class="sub" x="724" y="${LY+4}">Control closes path</text>`;
+  svg += `<circle cx="858" cy="${LY}" r="6" fill="var(--warn)"/><text class="sub" x="870" y="${LY+4}">Control limits path</text></g>`;
+  return svg + `</svg>`;
+}
+
+/* ---------- panel ---------- */
+const $ = q => document.querySelector(q);
+const LVLCOL = ["var(--ok)","var(--lo)","var(--warn)","var(--bad)"];
+function zoneLevel(z, A){
+  const lv = A.lv;
+  switch (z) {
+    case "contain": return !S.sandbox ? 3 : lv.shell;
+    case "model": return S.hosting==="self" ? 0 : lv.model;
+    case "data": return Math.max(lv.data, S.sandbox ? 0 : 2);
+    case "tools": return Math.max(lv.act, lv.egress, lv.mcp>=2 ? 2 : 0);
+    case "controls": return (!S.approval) + (!S.killSwitch) + (!S.logging);
+    case "inputs": return lv.inputs;
+  }
+  return 0;
+}
+function qRow(it){
+  if (it.type==="tog") return `<label class="row" data-row="${it.k}"><span class="txt"><b>${esc(it.label)}${osProvided(it.k)?`<span class="osbadge">OpenShell</span>`:""}</b><small>${esc(it.help)}</small></span><input class="t" type="checkbox" role="switch" data-k="${it.k}"><span class="sw"></span></label>`;
+  return `<div class="row seg" data-row="${it.k}"><span class="txt"><b>${esc(it.label)}${osProvided(it.k)?`<span class="osbadge">OpenShell</span>`:""}</b><small>${esc(it.help)}</small></span><div class="segs" role="radiogroup" aria-label="${esc(it.label)}">` +
+    it.opts.map(([v,t])=>`<label><input type="radio" name="${it.k}" value="${v}" data-k="${it.k}"><span>${esc(t)}</span></label>`).join("") + `</div></div>`;
+}
+function renderConfigure(A){
+  const z = ZONES.find(x=>x.id===zoneSel), i = ZONES.indexOf(z);
+  const cur = curPreset(), ctlTag = OSM==="controls";
+  let h = `<h2 class="ph">Preset</h2><div class="preset-list" role="radiogroup" aria-label="Preset">` +
+    Object.entries(PRESETS).map(([k,v])=>`<label class="pr"><input type="radio" name="preset" data-preset="${k}"${cur===k?" checked":""}><span class="rb"></span><span class="pt"><b>${esc(v.name)}${ctlTag && cur===k && JSON.stringify(PRESETS[k].s)!==JSON.stringify(S) ? `<span class="osbadge">+ OpenShell controls</span>` : ""}</b><small>${esc(v.desc)}</small></span></label>`).join("") +
+    (cur==="custom" ? `<label class="pr"><input type="radio" name="preset" checked disabled><span class="rb"></span><span class="pt"><b>Custom</b><small>Your edited answers. Pick a preset to start over.</small></span></label>` : "") + `</div>`;
+  h += `<h2 class="ph">Configure</h2><p class="hint">Work through the six areas, or click a box on the diagram to jump to its area.</p><div class="zones">` +
+    ZONES.map(x=>`<button type="button" class="zchip${x.id===zoneSel?" active":""}" data-zone="${x.id}"><span class="dot" style="background:${LVLCOL[Math.min(3,zoneLevel(x.id,A))]}"></span><span class="zn">${x.n}</span><span>${esc(x.title)}</span></button>`).join("") + `</div>`;
+  h += `<h2 class="ztitle"><span>${z.n}</span>${esc(z.title)}</h2><div class="zbody">` + ITEMS.filter(it=>it.zone===z.id).map(qRow).join("") + `</div>` + (OS ? `<div class="osnote"><b>OpenShell reference</b><span>${esc(OS_NOTES[z.id])}</span></div>` : "");
+  h += i<ZONES.length-1 ? `<button type="button" class="btn primary next" data-zone="${ZONES[i+1].id}">Next: ${esc(ZONES[i+1].title)}</button>` : `<button type="button" class="btn primary next" data-tab="findings">See findings</button>`;
+  return h;
+}
+function attackSteps(A){
+  const lv = A.lv, s = S, out = [];
+  const w = l => l>=3 ? "pass" : l>=1 ? "partial" : "block";
+  out.push({id:"inputs", t:"Untrusted content reaches the agent and its context", st:A.ut?"pass":"block", d:A.ut?"Hidden instructions in email, issues, documents, web pages or tool output are added by the agent code to the same context as your prompt.":"Only trusted input, so injection is less likely."});
+  out.push({id:"exec", t:"Agent code reaches files and shell", st:w(lv.runtime), d:lv.runtime>=3?"Files and code are reachable on the host with your user's access.":lv.runtime>=1?"Reachable, but inside the sandbox and its limits.":"No shell and files are scoped to a workspace."});
+  out.push({id:"tools", t:"Tools act with your permissions", st:w(lv.act), d:lv.act===0?"No credentials, so tools cannot act on your systems.":lv.act>=3?"Write-capable tools act with broad credentials.":s.toolWrite?"Tools can act, limited by credential scope or approval.":"Tools are read-only, which limits what they can change."});
+  out.push({id:"data", t:"Sensitive data is read", st:w(lv.data), d:lv.data===0?"No sensitive data access.":lv.data===1?"Scoped data is readable.":"Broad sensitive data is readable."});
+  out.push({id:"egress", t:"Data leaves the environment", st:w(lv.egress), d:lv.egress===0?"No outbound network.":lv.egress===1?"Only allowlisted destinations.":"Open outbound network."});
+  out.push({id:"model", t:"Model provider sees the data", st:S.hosting==="self"?"block":w(lv.model), d:S.hosting==="self"?"Inference stays inside your infrastructure.":lv.model>=3?"Provider terms or vendor review are missing.":lv.model>=1?"Contract terms limit exposure.":"Little sensitive data to expose."});
+  let oc;
+  if (A.ut && lv.data>=1 && lv.egress>=1) oc = ["bad","Exfiltration path exists. Injected content can read data and send it out."];
+  else if (A.ut && s.toolWrite && lv.act>=1 && !s.approval) oc = ["bad","Injected content can trigger actions through write-capable tools."];
+  else if (A.ut && (lv.creds===3 || (s.shell && !A.sbx))) oc = ["bad","Injected content can act with real privileges."];
+  else if (A.ut && lv.creds>=2) oc = ["warn","Injected content can act with credentials. Approval or scope limits the impact."];
+  else if (A.ut) oc = ["good","Injection is possible, but containment limits the damage."];
+  else oc = ["good","No complete attack path with these answers."];
+  return {steps:out, outcome:oc};
+}
+const SICON = {pass:"!",partial:"~",block:"✓"};
+function renderAttack(A){
+  const {steps, outcome} = attackSteps(A);
+  return `<h2 class="ph">Attack path</h2><p class="hint">Assume the agent is compromised or prompt-injected. How far can it get with your current setup?</p>` +
+    `<button type="button" class="btn primary" id="simBtn">${simOn?"Stop simulation":"Simulate compromise"}</button>` +
+    `<ol class="steps">` + steps.map(st=>`<li class="step ${st.st}" data-step="${st.id}"><span class="sicon">${SICON[st.st]}</span><div><strong>${esc(st.t)}</strong><span class="sword">${{pass:"passes",partial:"limited",block:"blocked"}[st.st]}</span><p>${esc(st.d)}</p></div></li>`).join("") + `</ol>` +
+    `<div class="outcome ${outcome[0]}">${esc(outcome[1])}</div>`;
+}
+function renderFindings(F){
+  const c = [0,0,0,0]; F.forEach(f=>c[f.sev]++);
+  let h = "";
+  if (OSM==="controls") {
+    const R = residual(CUR.A);
+    h += `<h2 class="ph">What OpenShell covers</h2><div class="rest"><div class="rh"><span>OpenShell covers</span><span>Not covered</span></div>` +
+      R.map(x=>`<div class="rw"><div class="c ${x.on?"ok":"off"}"><i>${x.on?"\u2713":"\u2013"}</i><span>${esc(x.h)}</span></div><div class="c ${x.active?"r"+x.sev:"none"}"><i>${x.active?"!":"\u2713"}</i><span>${esc(x.r)}</span></div></div>`).join("") +
+      `</div><p class="hint">This is our analysis, not NVIDIA's. A sandbox blocks actions outside its policy. It does not stop misuse of what the agent is allowed to do.</p>`;
+  }
+  h += `<h2 class="ph">What could go wrong</h2><p class="hint">Select a finding to trace its path on the diagram.</p>`;
+  h += `<div class="counts">` + (c[3]?`<span class="pill p3">${c[3]} critical</span>`:"") + (c[2]?`<span class="pill p2">${c[2]} elevated</span>`:"") + (c[1]?`<span class="pill p1">${c[1]} notice</span>`:"") + `</div>`;
+  h += F.length ? `<ul id="find-list">` + F.map(f=>`<li><button type="button" class="f s${f.sev}" data-id="${f.id}" aria-pressed="${f.id===focusId}">` +
+      `<span class="top"><span class="pill p${f.sev}">${SEVWORD[f.sev]}</span><span class="ft">${esc(f.title)}</span></span>` +
+      `<span class="fb">${esc(f.body)}</span><span class="fx"><b>Fix:</b> ${esc(f.fix)}</span>` +
+      `<span class="tags">${f.tags.map(t=>`<i>${TAGS[t]?`OWASP ${t} · ${TAGS[t]}`:t}</i>`).join("")}</span></button></li>`).join("") + `</ul>`
+    : `<div class="empty">No findings for these answers. Make sure the answers match what is actually deployed.</div>`;
+  return h;
+}
+function syncControls(){
+  ITEMS.forEach(it=>{
+    const row = document.querySelector(`[data-row="${it.k}"]`); if (!row) return;
+    const off = it.naIf ? it.naIf(S) : false;
+    row.classList.toggle("off", off);
+    row.querySelectorAll("input").forEach(inp=>{
+      inp.disabled = off;
+      if (it.type==="tog") inp.checked = !!S[it.k] && !off; else inp.checked = S[it.k]===inp.value;
+    });
+  });
+}
+function renderPanel(){
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab ? "true":"false"));
+  const body = $("#panel-body"), top = body.scrollTop;
+  body.innerHTML = tab==="attack" ? renderAttack(CUR.A) : tab==="findings" ? renderFindings(CUR.F) : renderConfigure(CUR.A);
+  if (tab==="configure") syncControls();
+  body.scrollTop = top;
+  const n = CUR.F.filter(f=>f.sev>=2).length, fc = $("#fcnt"); fc.textContent = n; fc.className = "cnt c"+n;
+}
+
+/* ---------- render ---------- */
+function update(){
+  const ae = document.activeElement;
+  const keep = ae && ae.dataset && ae.dataset.k ? {k:ae.dataset.k, v:ae.type==="radio"?ae.value:null} : (ae && ae.dataset && ae.dataset.preset ? {pr:ae.dataset.preset} : null);
+  stopSim();
+  const A = analyze(S), F = findings(S, A);
+  CUR = {A, F};
+  if (tab!=="findings" || (focusId && !F.some(f=>f.id===focusId))) focusId = null;
+  const foc = F.find(f=>f.id===focusId) || null;
+  $("#dia").innerHTML = buildSVG(A, foc, OS);
+  $("#osnote").hidden = !OS;
+  $("#osnote").textContent = OSM==="controls" ? "OpenShell controls are on. The OpenShell preset turns on everything OpenShell provides and leaves the rest of a typical setup as is. Change any answer or pick another preset to compare. Red labels show what OpenShell does not cover." : "OpenShell reference is a conceptual mapping of NVIDIA's published architecture terms onto this diagram. It is not an OpenShell deployment. Exports show the plain view.";
+  document.querySelectorAll('input[name=osmode]').forEach(i=>{ i.checked = i.value===OSM; });
+
+  const c = [0,0,0,0]; F.forEach(f=>c[f.sev]++);
+  const inPlace = [];
+  if (S.sandbox) inPlace.push("Sandbox"); if (S.sandbox && S.fsScoped) inPlace.push("Scoped filesystem");
+  if (S.egress==="none") inPlace.push("No egress"); else if (S.egress==="allow") inPlace.push("Egress allowlist");
+  if (S.creds==="scoped") inPlace.push("Scoped credentials");
+  if (S.approval) inPlace.push("Human approval"); if (S.killSwitch) inPlace.push("Kill switch"); if (S.logging) inPlace.push("Logging");
+  if (S.hosting!=="self" && S.noTraining) inPlace.push("No-training clause"); if (S.hosting!=="self" && S.retention) inPlace.push("Limited retention"); if (S.hosting!=="self" && S.vendorReview) inPlace.push("Vendor reviewed");
+  if (S.hosting==="self") inPlace.push("Self-hosted model");
+  $("#sum").innerHTML = `<span class="sumlabel">Findings</span>` +
+    (c[3]?`<span class="pill p3">${c[3]} critical</span>`:"") + (c[2]?`<span class="pill p2">${c[2]} elevated</span>`:"") + (c[1]?`<span class="pill p1">${c[1]} notice</span>`:"") +
+    (!F.length?`<span class="ok-chip">None with these answers</span>`:"") +
+    `<span class="sumlabel" style="margin-left:10px">In place</span>` + inPlace.map(t=>`<span class="ok-chip">${esc(t)}</span>`).join("") + (inPlace.length?"":`<span class="sumlabel">nothing yet</span>`);
+  renderPanel();
+  if (keep && keep.pr) { const el = document.querySelector(`[data-preset="${keep.pr}"]`); if (el) el.focus(); }
+  else if (keep) {
+    const sel = keep.v!==null ? `[data-k="${keep.k}"][value="${keep.v}"]` : `[data-k="${keep.k}"]`;
+    const el = document.querySelector(sel); if (el && !el.disabled) el.focus();
+  }
+  try { history.replaceState(null,"","#s="+btoa(encodeURIComponent(JSON.stringify(S)))+(OS?"&os="+OSM:"")); } catch(e){}
+}
+
+/* ---------- simulation ---------- */
+let simId = 0;
+const SVGNS = "http://www.w3.org/2000/svg";
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+function stopSim(){
+  simId++; simOn = false;
+  const svg = document.querySelector("#dia svg");
+  if (svg) {
+    svg.classList.remove("simming");
+    svg.querySelectorAll(".packet,.simbadge").forEach(e=>e.remove());
+    svg.querySelectorAll(".simhit,.simlimited,.simsafe,.simblock").forEach(e=>e.classList.remove("simhit","simlimited","simsafe","simblock"));
+  }
+  const cap = document.getElementById("simcap"); if (cap) cap.hidden = true;
+  const b = document.getElementById("simBtn"); if (b) b.textContent = "Simulate compromise";
+  document.querySelectorAll(".step.dim").forEach(e=>e.classList.remove("dim"));
+}
+function packetAt(svg, kind){
+  const col = kind==="limited" ? "var(--warn)" : "var(--bad)";
+  const g = document.createElementNS(SVGNS, "g"); g.setAttribute("class","packet");
+  g.innerHTML = `<circle class="pglow" r="20" fill="${col}" opacity=".28"/><circle r="10" fill="${col}" stroke="#fff" stroke-width="3.5"/>`;
+  svg.appendChild(g); return g;
+}
+function travel(svg, pathEl, kind, stopFn, dur, myId){
+  return new Promise(res=>{
+    const L = pathEl.getTotalLength(); let end = L;
+    if (stopFn) for (let l=0; l<=L; l+=2) { if (stopFn(pathEl.getPointAtLength(l))) { end = l; break; } }
+    const g = packetAt(svg, kind), t0 = performance.now();
+    (function f(t){
+      if (myId!==simId) { g.remove(); return res(false); }
+      const k = Math.min(1,(t-t0)/dur), e = k<.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2, p = pathEl.getPointAtLength(end*e);
+      g.setAttribute("transform", `translate(${p.x},${p.y})`);
+      if (k<1) requestAnimationFrame(f); else { setTimeout(()=>g.remove(), 350); res(true); }
+    })(performance.now());
+  });
+}
+function badge(svg, nodeId, word, kind){
+  const n = svg.querySelector(`[data-node="${nodeId}"]`); if (!n) return;
+  const bb = n.querySelector(".border").getBBox(), w = word.length*7.6+20;
+  const g = document.createElementNS(SVGNS, "g"); g.setAttribute("class","simbadge "+kind);
+  g.innerHTML = `<rect x="${bb.x+bb.width-w+12}" y="${bb.y-13}" width="${w}" height="24" rx="12"/><text x="${bb.x+bb.width-w/2+12}" y="${bb.y+4}" text-anchor="middle">${word}</text>`;
+  svg.appendChild(g);
+}
+async function startSim(){
+  stopSim(); simOn = true;
+  const myId = simId, A = analyze(S), lv = A.lv, svg = document.querySelector("#dia svg");
+  const sb = document.getElementById("simBtn"); if (sb) sb.textContent = "Stop simulation";
+  const cap = document.getElementById("simcap");
+  svg.classList.add("simming");
+  document.querySelectorAll(".step").forEach(e=>e.classList.add("dim"));
+  const {steps, outcome} = attackSteps(A);
+  const stepOf = id => steps.find(x=>x.id===id);
+  const kindOf = l => l>=2 ? "pass" : l===1 ? "limited" : "block";
+  const edgeEl = id => svg.querySelector(`[data-edge="${id}"] .line`);
+  const alive = () => myId===simId;
+  const mark = (sel, cls) => svg.querySelectorAll(sel).forEach(e=>e.classList.add(cls));
+  const WORD = {pass:"PASSES", limited:"LIMITED", block:"BLOCKED"};
+  const N = steps.length;
+  const say = (n, id, kind) => {
+    const st = stepOf(id); cap.hidden = false; cap.className = "simcap "+kind;
+    cap.innerHTML = `<span class="n">STEP ${n} OF ${N}</span><span>${esc(st.t)}</span><span class="w">${WORD[kind]}</span><small>${esc(st.d)}</small>`;
+    const li = document.querySelector(`[data-step="${id}"]`); if (li) { li.classList.remove("dim"); li.scrollIntoView({block:"nearest",behavior:"smooth"}); }
+  };
+  const nodeResult = (id, l, safeWord) => {
+    const k = kindOf(l);
+    mark(`[data-node="${id}"]`, k==="pass" ? "simhit" : k==="limited" ? "simlimited" : "simsafe");
+    badge(svg, id, k==="pass" ? "REACHED" : k==="limited" ? "LIMITED" : (safeWord||"BLOCKED"), k);
+  };
+  const run = async (id, l, stopFn) => {
+    const k = kindOf(l);
+    mark(`[data-edge="${id}"]`, k==="pass" ? "simhit" : k==="limited" ? "simlimited" : "simblock");
+    return travel(svg, edgeEl(id), k==="block" ? "pass" : k, stopFn, 700, myId);
+  };
+  const stopY = y => (p => p.y >= y), stopX = x => (p => p.x >= x);
+  const gateEl = id => { const g = svg.querySelector(`[data-gate="${id}"]`); if (g) g.classList.add("simblock"); };
+  const secL = OSM==="controls" ? Math.min(1, lv.creds) : (lv.creds===3 ? 3 : (S.dataAccess==="broad" && !A.sbx ? 2 : lv.creds ? 1 : 0));
+
+  badge(svg, "model", "STEERED", "pass"); mark('[data-node="model"]', "simhit"); badge(svg, "llm", "EXECUTES", "pass"); mark('[data-node="llm"]', "simhit");
+
+  say(1, "inputs", A.ut ? "pass" : "block");
+  mark('[data-node="inputs"]', A.ut ? "simhit" : "simsafe");
+  await run("in", A.ut ? 3 : 0, A.ut ? null : stopY(146)); if (!alive()) return;
+  badge(svg, "inputs", A.ut ? "ENTRY POINT" : "TRUSTED ONLY", A.ut ? "pass" : "block");
+  await sleep(750); if (!alive()) return;
+
+  say(2, "exec", kindOf(lv.runtime));
+  await run("toRuntime", lv.runtime); if (!alive()) return;
+  nodeResult("runtime", lv.runtime, "CONTAINED");
+  await sleep(750); if (!alive()) return;
+
+  say(3, "tools", kindOf(lv.act));
+  await run("toTools", lv.mcp); if (!alive()) return;
+  nodeResult("tools", lv.mcp, "FIRST-PARTY");
+  await run("tdata", lv.act, lv.act===0 ? stopY(574) : null); if (!alive()) return;
+  if (lv.act===0) gateEl("creds");
+  nodeResult("cloud", lv.act, "NO CREDS"); nodeResult("biz", lv.act, "NO CREDS");
+  await sleep(750); if (!alive()) return;
+
+  say(4, "data", kindOf(lv.data));
+  await run("rdata", lv.data, lv.data===0 ? stopY(574) : null); if (!alive()) return;
+  if (lv.data===0) gateEl("data");
+  nodeResult("cdata", lv.data, "NO ACCESS"); nodeResult("secrets", secL, "PROTECTED");
+  await sleep(750); if (!alive()) return;
+
+  say(5, "egress", kindOf(lv.egress));
+  await run("egress", lv.egress, lv.egress===0 ? stopX(716) : null); if (!alive()) return;
+  if (lv.egress===0) gateEl("egress");
+  nodeResult("egress", lv.egress, "NO EGRESS");
+  await sleep(750); if (!alive()) return;
+
+  const mLvl = S.hosting==="self" ? 0 : lv.model;
+  say(6, "model", kindOf(mLvl));
+  await run("model", mLvl || 1); if (!alive()) return;
+  nodeResult("model", mLvl, "IN HOUSE");
+  await sleep(900); if (!alive()) return;
+
+  cap.hidden = false; cap.className = "simcap " + ({bad:"pass",warn:"partial",good:"block"}[outcome[0]]);
+  cap.innerHTML = `<span class="n">RESULT</span><span>${esc(outcome[1])}</span>`;
+  simOn = false;
+  const b2 = document.getElementById("simBtn"); if (b2) b2.textContent = "Replay simulation";
+}
+
+/* ---------- export ---------- */
+const EXPORT_VARS = "svg.diagram{--bg:#fff;--card:#fff;--ink:#1B2330;--mute:#5E6B7C;--line:#D5DBE3;--ok:#1F9D8B;--lo:#3B82C4;--warn:#D9822B;--bad:#D6453D}";
+function exportSVGString(){
+  const tmp = document.createElement("div"); tmp.innerHTML = buildSVG(CUR.A, null, false); const svg = tmp.firstElementChild;
+  svg.classList.remove("focus");
+  svg.querySelectorAll(".selring").forEach(e=>e.remove());
+  const style = document.createElementNS("http://www.w3.org/2000/svg","style");
+  style.textContent = EXPORT_VARS + document.getElementById("diagram-css").textContent;
+  svg.insertBefore(style, svg.firstChild);
+  const bg = document.createElementNS("http://www.w3.org/2000/svg","rect");
+  bg.setAttribute("y","24"); bg.setAttribute("width","1000"); bg.setAttribute("height","780"); bg.setAttribute("fill","#fff");
+  svg.insertBefore(bg, style.nextSibling);
+  svg.setAttribute("width","1000"); svg.setAttribute("height","780");
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg);
+}
+function download(blob, name){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+function toast(t){ const el = document.getElementById("toast"); el.textContent = t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1800); }
+
+/* ---------- events ---------- */
+$("#panel-body").addEventListener("change", e=>{
+  const k = e.target.dataset && e.target.dataset.k; if (!k) return;
+  S[k] = e.target.type==="checkbox" ? e.target.checked : e.target.value;
+  update();
+});
+document.querySelector(".panel").addEventListener("click", e=>{
+  const t = e.target.closest("[data-tab]");
+  if (t) { tab = t.dataset.tab; update(); return; }
+  const z = e.target.closest("[data-zone]");
+  if (z) { zoneSel = z.dataset.zone; tab = "configure"; update(); $("#panel-body").scrollTop = 0; return; }
+  const p = e.target.closest("[data-preset]");
+  if (p) { S = Object.assign({}, PRESETS[p.dataset.preset].s); S_BEFORE = null; APPLIED = {}; focusId = null; update(); return; }
+  const f = e.target.closest("[data-id]");
+  if (f) { focusId = focusId===f.dataset.id ? null : f.dataset.id; update(); return; }
+  if (e.target.closest("#simBtn")) { if (simOn) stopSim(); else startSim(); }
+});
+$("#dia").addEventListener("click", e=>{
+  const z = e.target.closest("[data-zone]"); if (!z) return;
+  zoneSel = z.dataset.zone; tab = "configure"; update(); $("#panel-body").scrollTop = 0;
+});
+$("#dia").addEventListener("keydown", e=>{
+  if (e.key!=="Enter" && e.key!==" ") return;
+  const z = e.target.closest && e.target.closest("[data-zone]"); if (!z) return;
+  e.preventDefault(); zoneSel = z.dataset.zone; tab = "configure"; update();
+});
+document.querySelectorAll("input[name=osmode]").forEach(i=>i.addEventListener("change", e=>{ setOSM(e.target.value); update(); }));
+document.getElementById("svgBtn").addEventListener("click", ()=>download(new Blob([exportSVGString()],{type:"image/svg+xml"}),"agent-threat-model.svg"));
+document.getElementById("pngBtn").addEventListener("click", ()=>{
+  const url = URL.createObjectURL(new Blob([exportSVGString()],{type:"image/svg+xml;charset=utf-8"}));
+  const img = new Image();
+  img.onload = ()=>{
+    const c = document.createElement("canvas"); c.width = 2000; c.height = 1560;
+    const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0,0,c.width,c.height); ctx.drawImage(img,0,0,c.width,c.height);
+    c.toBlob(b=>{ download(b,"agent-threat-model.png"); URL.revokeObjectURL(url); });
+  };
+  img.onerror = ()=>toast("PNG export failed. Try SVG.");
+  img.src = url;
+});
+document.getElementById("linkBtn").addEventListener("click", async ()=>{
+  try { await navigator.clipboard.writeText(location.href); toast("Link copied"); }
+  catch(e){ const t = document.createElement("textarea"); t.value = location.href; document.body.appendChild(t); t.select(); try{document.execCommand("copy"); toast("Link copied");}catch(_){toast("Copy the address bar link");} t.remove(); }
+});
+
+/* ---------- init ---------- */
+(function init(){
+  try {
+    const m = location.hash.match(/^#s=([^&]+)/); const om = location.hash.match(/&os=(labels|controls)/); OSM = om ? om[1] : (/&os=1/.test(location.hash) ? "labels" : "off"); OS = OSM!=="off";
+    if (m) { const o = JSON.parse(decodeURIComponent(atob(m[1]))); Object.keys(S).forEach(k=>{ if (k in o) S[k] = o[k]; }); }
+  } catch(e){}
+  update();
+})();
+</script>
+</body>
+</html>
